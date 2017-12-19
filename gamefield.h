@@ -14,10 +14,11 @@ enum TypeOfItem
 };
 
 
-class Inventory
+class Inventory : public QObject
 {
+    Q_OBJECT
 public:
-    Inventory(int size);
+    Inventory(int size, QObject *parent = 0);
     ~Inventory();
 
     //возвращает список айтемов
@@ -25,23 +26,31 @@ public:
 
     //обнуляет количество предметов в ячейках
     void reset();
+    void changeStack(QString command, int type, int index, int number);
+
+private slots:
+    void slotStackChanged(QString command, int number);
+
+signals:
+    void inventoryChanged(QString command, int type, int index, int number);
 
 private:
     QList<class ItemStack*> itemStacks_;
 };
 
 
-class ItemStack
+class ItemStack : public QObject
 {
+    Q_OBJECT
 public:
-    explicit ItemStack();
+    explicit ItemStack(QObject *parent = 0);
     ~ItemStack();
 
     // добавляет предметы
-    bool add(TypeOfItem type, int number);
+    bool add(TypeOfItem type, int number, bool key = true);
 
     // удаялет предметы
-    void get(int number);
+    void get(int number, bool key = true);
 
     // возвращает тип предмета
     TypeOfItem getType() { return type_; }
@@ -57,6 +66,9 @@ public:
 
     // возвращает виджет изображения
     class ItemStackWidget *getWidget() {return widget_; }
+
+signals:
+    void itemChanged(QString command, int number);
 
 private:
     QList<class AbstractItem*> items_;

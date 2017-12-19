@@ -5,11 +5,13 @@
 
 
 
-Inventory::Inventory(int size)
+Inventory::Inventory(int size, QObject *parent)
+    : QObject(parent)
 {
     for(int i = 0; i < size; i++)
     {
         itemStacks_.push_back(new ItemStack);
+        connect(itemStacks_.last(), &ItemStack::itemChanged, this, &Inventory::slotStackChanged);
     }
 }
 
@@ -20,6 +22,7 @@ Inventory::~Inventory()
         delete it;
 }
 
+
 void Inventory::reset()
 {
     for(auto *it: itemStacks_)
@@ -29,9 +32,27 @@ void Inventory::reset()
 }
 
 
+void Inventory::changeStack(QString command, int type, int index, int number)
+{
+
+    if(command == "add")
+        itemStacks_[index]->add((TypeOfItem)type, number, false);
+    else if(command == "get")
+        itemStacks_[index]->get(number, false);
+}
+
+
+void Inventory::slotStackChanged(QString command, int number)
+{
+    auto *itemStack = dynamic_cast<ItemStack*>(sender());
+    emit inventoryChanged(command, itemStack->getType(), itemStacks_.indexOf(itemStack), number);
+}
+
+
 //--------------------------------------------------
-ItemStack::ItemStack()
-  : type_{},
+ItemStack::ItemStack(QObject *parent)
+  : QObject(parent),
+    type_{},
     uncountable_{}
 {
     widget_ = new ItemStackWidget(nullptr, this);
@@ -44,7 +65,7 @@ ItemStack::~ItemStack()
 }
 
 
-bool ItemStack::add(TypeOfItem type, int number)
+bool ItemStack::add(TypeOfItem type, int number, bool key)
 {
     if(uncountable_)
         return true;
@@ -64,11 +85,14 @@ bool ItemStack::add(TypeOfItem type, int number)
         widget_->setPixmap(QPixmap(items_[0]->getPicturePath()));
     }
 
+    if(key)
+        emit itemChanged("add", number);
+
     return true;
 }
 
 
-void ItemStack::get(int number)
+void ItemStack::get(int number, bool key)
 {
     if(uncountable_)
         return;
@@ -90,6 +114,9 @@ void ItemStack::get(int number)
             items_.pop_back();
         }
     }
+
+    if(key)
+        emit itemChanged("get", number);
 }
 
 
